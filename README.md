@@ -32,9 +32,21 @@ flutter test
 
 `flutter create --platforms=web .` gera somente arquivos de plataforma ausentes ou arquivos previstos pelo comando; confira o `git diff` depois de executar. Não substitua o `lib/main.dart` pelo template Flutter Demo.
 
+## Camada de dados
+
+```
+data/
+  models/        LugarModel, UsuarioModel (com hash/salt), AvaliacaoModel -> toEntity()/fromEntity()
+  datasources/   AuthDataSource + PetsDataSource (interfaces) e implementações locais (SharedPreferences)
+  security/      PasswordHasher (hash + salt, comparação em tempo constante)
+  repositories/  PetsRepositoryImpl: Model <-> Entity e erros inesperados -> StorageFailure
+```
+
+O domínio lança apenas `PetsFailure` (`ValidationFailure`, `AuthFailure`, `StorageFailure`). Credenciais nunca saem da camada de dados.
+
 ## Supabase (não conectado)
 
-O contrato `PetsRepository` vive no Domain. Atualmente, a implementação `PetsRepositoryLocalImpl` utiliza `LocalPetsDataSource` (`SharedPreferences`). Quando o banco estiver pronto, crie `SupabasePetsDataSource` e `PetsRepositorySupabaseImpl` em `data/`, mapeie as tabelas para as entidades via models, e altere **somente** a composição em `lib/core/di/providers.dart`. Não adicione URLs e chaves privadas ao Git.
+O contrato `PetsRepository` vive no Domain e `PetsRepositoryImpl` não conhece o banco. Para migrar, crie `AuthSupabaseDataSource` e `PetsSupabaseDataSource` (implementando `AuthDataSource` e `PetsDataSource`) em `data/datasources/` e altere **somente** `authDataSourceProvider` e `petsDataSourceProvider` em `lib/core/di/providers.dart`. Não adicione URLs e chaves privadas ao Git.
 
 A autenticação local é **somente para demonstração**, não substitui autenticação segura de produção; na migração use Supabase Auth, políticas RLS e regras de autorização adequadas.
 
