@@ -81,6 +81,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.1"
+  five_pointed_star:
+    dependency: "direct main"
+    description:
+      name: five_pointed_star
+      sha256: "4b916b41f32424157adfec7b840e35abe3a28737e3ed699e7ff711cd964e7be8"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.4"
   flutter:
     dependency: "direct main"
     description: flutter
