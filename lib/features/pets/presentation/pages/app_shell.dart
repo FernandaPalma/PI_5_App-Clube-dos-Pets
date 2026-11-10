@@ -70,13 +70,15 @@ class _AppShellState extends ConsumerState<AppShell> {
                         errorBuilder: (_, __, ___) => const Icon(Icons.pets,
                             color: petPrimary, size: 36))),
                 const SizedBox(width: 9),
-                Text(screenWidth < 440 ? 'Clube Pets' : 'Clube dos Pets',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        color: petDark,
-                        fontSize: 20)),
+                Flexible(
+                  child: Text(screenWidth < 440 ? 'Clube Pets' : 'Clube dos Pets',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          color: petDark,
+                          fontSize: 20)),
+                ),
               ]),
             )),
         actions: [
