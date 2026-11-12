@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/di/providers.dart';
+import 'features/pets/data/datasources/supabase_auth_datasource.dart';
 import 'features/pets/presentation/pages/app_shell.dart';
 
 Future<void> main() async {
@@ -10,12 +11,26 @@ Future<void> main() async {
 
   const url = String.fromEnvironment('SUPABASE_URL');
   const publishableKey = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
-  if (url.isNotEmpty && publishableKey.isNotEmpty) {
-    await Supabase.initialize(url: url, publishableKey: publishableKey);
+
+  if (url.isEmpty || publishableKey.isEmpty) {
+    throw StateError(
+      'Inicie com flutter run --dart-define-from-file=config/supabase.local.json',
+    );
   }
+
+  final supabase = await Supabase.initialize(
+    url: url,
+    publishableKey: publishableKey,
+  );
   final prefs = await SharedPreferences.getInstance();
+
   runApp(ProviderScope(
-    overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      authDataSourceProvider.overrideWithValue(
+        SupabaseAuthDataSource(supabase.client),
+      ),
+    ],
     child: const ClubeDosPetsApp(),
   ));
 }
