@@ -11,8 +11,8 @@ O aplicativo integrado é o da raiz do repositório, com `lib/main.dart` e `pubs
 - O perfil é consultado/criado após existir sessão autenticada. Senhas ficam no Supabase Auth.
 - O erro 42501 de `perfis` foi corrigido concedendo SELECT e INSERT a `authenticated`.
 - Logout implementado e coberto por teste automatizado; falta registrar a validação manual.
-- Última execução confirmada: análise sem erros e 24 testes aprovados.
-- Categorias, estabelecimentos, avaliações e favoritos do app ainda usam dados locais.
+- Verificacao desta etapa: flutter analyze e flutter test aprovados.
+- Fonte remota implementada. Migration 003 aplicada; validar os fluxos descritos em INTEGRACAO_DADOS_SUPABASE.md.
 
 ## Executar o aplicativo
 
@@ -32,7 +32,7 @@ A URL deve ser a base do projeto, sem `/rest/v1/`. Contas da demonstração loca
 
 - Projeto: `clube-dos-pets-mobile`.
 - Tabelas: `perfis`, `categorias`, `estabelecimentos`, `avaliacoes`, `favoritos`.
-- RLS configurado; os GRANTs das demais tabelas ainda precisam ser conferidos.
+- RLS configurado; as permissoes dos fluxos implementados estao nas migrations 002 e 003.
 - `20261112000100_postgis_e_imagens.sql`: PostGIS, RPC e Storage, já aplicados.
 - `20261112000200_permissoes_perfis.sql`: permissões de perfis, já aplicadas via SQL Editor.
 - A estrutura inicial das cinco tabelas ainda precisa de uma versão completa no repositório.
@@ -48,13 +48,10 @@ A URL deve ser a base do projeto, sem `/rest/v1/`. Contas da demonstração loca
 
 ## Próxima implementação
 
-1. Executar `supabase/diagnostics/estrutura_integracao.sql` no SQL Editor para obter colunas, restrições, índices, políticas, permissões e categorias existentes.
-2. Implementar a fonte remota respeitando `PetsDataSource`; mapear explicitamente os campos SQL para os models Dart.
-3. Usar UUIDs do banco para os registros remotos; os IDs de demonstração/timestamp não devem ser enviados como UUIDs.
-4. Injetar a fonte remota no aplicativo, preservando fontes locais e respostas HTTP simuladas nos testes.
-5. Conferir categorias iniciais, regra das notas e autorização para administrar estabelecimentos com o MER/equipe.
-6. Integrar a chamada de proximidade, obtenção das coordenadas e apresentação dos resultados.
-7. Integrar seleção, upload e exibição das imagens.
+Consultar `INTEGRACAO_DADOS_SUPABASE.md` para contratos e testes da fonte remota.
+Migration 003 aplicada. Confirmar cadastro, favoritos e avaliacao no banco real.
+Continuam pendentes imagens, interface de localizacao, categorias dinamicas,
+validacao com duas contas, celular/emulador e o schema inicial completo.
 
 ## Validação antes do PR
 

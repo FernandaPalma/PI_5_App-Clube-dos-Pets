@@ -24,7 +24,7 @@ class PetsController extends StateNotifier<PetsState> {
       final resultado=await carregarPets();
       state=PetsState(loading:false,usuario:resultado.usuario,lugares:resultado.lugares,
         avaliacoes:resultado.avaliacoes,favoritos:resultado.favoritos);
-    } catch(e) {state=PetsState(loading:false,erro:'Não foi possível carregar os dados locais: $e');}
+    } catch(e) {state=PetsState(loading:false,erro:'Não foi possível carregar os dados: $e');}
   }
   Future<void> cadastrar(String nome,String email,String senha) async {await cadastrarUsuario(nome,email,senha);await carregar();}
   Future<void> login(String email,String senha) async {await entrar(email,senha);await carregar();}

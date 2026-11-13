@@ -871,7 +871,7 @@ class _NovoLugarPageState extends ConsumerState<NovoLugarPage> {
               constraints: const BoxConstraints(maxWidth: 550),
               child: ListView(padding: const EdgeInsets.all(18), children: [
                 const Text(
-                    'O estabelecimento será salvo neste dispositivo/navegador.'),
+                    'O estabelecimento ficará disponível para consulta no aplicativo.'),
                 const SizedBox(height: 15),
                 TextField(
                     controller: nome,

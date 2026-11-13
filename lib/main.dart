@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/di/providers.dart';
 import 'features/pets/data/datasources/supabase_auth_datasource.dart';
+import 'features/pets/data/datasources/supabase_pets_datasource.dart';
 import 'features/pets/presentation/pages/app_shell.dart';
 
 Future<void> main() async {
@@ -27,6 +28,9 @@ Future<void> main() async {
   runApp(ProviderScope(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
+      petsDataSourceProvider.overrideWithValue(
+        SupabasePetsDataSource(supabase.client),
+      ),
       authDataSourceProvider.overrideWithValue(
         SupabaseAuthDataSource(supabase.client),
       ),
