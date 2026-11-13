@@ -19,3 +19,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/
+dependencies:
+  flutter:
+    sdk: flutter
+  supabase_flutter: ^2.5.0 # (ou a versão que você já usa)
+  geolocator: ^13.0.2     # Adicione esta linha
