@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/pets_entities.dart';
 import '../../domain/usecases/pets_usecases.dart';
@@ -10,7 +12,9 @@ class PetsState {
 class PetsController extends StateNotifier<PetsState> {
   PetsController({required this.carregarPets,required this.cadastrarUsuario,
     required this.entrar,required this.sairUseCase,required this.alternarFavorito,
-    required this.cadastrarEstabelecimento,required this.avaliarLugar}) : super(const PetsState());
+    required this.cadastrarEstabelecimento,required this.avaliarLugar,
+    required this.atualizarNomePerfil,required this.atualizarFotoPerfil,
+    required this.removerFotoPerfil,required this.alterarSenhaUseCase,required this.alterarTipoContaUseCase}) : super(const PetsState());
   final CarregarPets carregarPets;
   final CadastrarUsuario cadastrarUsuario;
   final Entrar entrar;
@@ -18,6 +22,11 @@ class PetsController extends StateNotifier<PetsState> {
   final AlternarFavorito alternarFavorito;
   final CadastrarLugar cadastrarEstabelecimento;
   final AvaliarLugar avaliarLugar;
+  final AtualizarNomePerfil atualizarNomePerfil;
+  final AtualizarFotoPerfil atualizarFotoPerfil;
+  final RemoverFotoPerfil removerFotoPerfil;
+  final AlterarSenha alterarSenhaUseCase;
+  final AlterarTipoConta alterarTipoContaUseCase;
 
   Future<void> carregar() async {
     try {
@@ -26,9 +35,19 @@ class PetsController extends StateNotifier<PetsState> {
         avaliacoes:resultado.avaliacoes,favoritos:resultado.favoritos);
     } catch(e) {state=PetsState(loading:false,erro:'Não foi possível carregar os dados: $e');}
   }
-  Future<void> cadastrar(String nome,String email,String senha) async {await cadastrarUsuario(nome,email,senha);await carregar();}
+  /// Recarrega os dados (pull to refresh). Em caso de falha mantém a tela atual e propaga o erro.
+  Future<void> atualizar() async {
+    final r=await carregarPets();
+    state=PetsState(loading:false,usuario:r.usuario,lugares:r.lugares,avaliacoes:r.avaliacoes,favoritos:r.favoritos);
+  }
+  Future<void> cadastrar(String nome,String email,String senha,{TipoConta tipo=TipoConta.tutor}) async {await cadastrarUsuario(nome,email,senha,tipo:tipo);await carregar();}
+  Future<void> alterarTipoConta(TipoConta tipo) async {await alterarTipoContaUseCase(state.usuario,tipo);await carregar();}
   Future<void> login(String email,String senha) async {await entrar(email,senha);await carregar();}
   Future<void> sair() async {await sairUseCase();await carregar();}
+  Future<void> atualizarNome(String nome) async {await atualizarNomePerfil(state.usuario,nome);await carregar();}
+  Future<void> atualizarFoto(Uint8List bytes,String mimeType) async {await atualizarFotoPerfil(state.usuario,bytes,mimeType);await carregar();}
+  Future<void> removerFoto() async {await removerFotoPerfil(state.usuario);await carregar();}
+  Future<void> alterarSenha(String senhaAtual,String novaSenha) async {await alterarSenhaUseCase(state.usuario,senhaAtual,novaSenha);}
   Future<void> favorito(String lugarId) async {await alternarFavorito(state.usuario,lugarId);await carregar();}
   Future<void> cadastrarLugar({required String nome,required String categoria,required String cidade,
     required String descricao,required String endereco,required String telefone}) async {

@@ -82,7 +82,8 @@ void main() {
     final client = clienteTeste((r) async {
       pedidos.add(r);
       if (r.url.path == '/auth/v1/signup') {
-        expect(jsonDecode(r.body)['data'], {'nome': 'Pessoa de teste'});
+        expect(jsonDecode(r.body)['data'],
+            {'nome': 'Pessoa de teste', 'tipo': 'tutor'});
         return jsonResponse(usuario);
       }
       fail('Requisição inesperada: ${r.method} ${r.url.path}');

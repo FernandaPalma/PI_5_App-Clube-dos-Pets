@@ -42,5 +42,10 @@ final appProvider = StateNotifierProvider<PetsController, PetsState>((ref) {
     alternarFavorito: AlternarFavorito(repository),
     cadastrarEstabelecimento: CadastrarLugar(repository),
     avaliarLugar: AvaliarLugar(repository),
+    atualizarNomePerfil: AtualizarNomePerfil(repository),
+    atualizarFotoPerfil: AtualizarFotoPerfil(repository),
+    removerFotoPerfil: RemoverFotoPerfil(repository),
+    alterarSenhaUseCase: AlterarSenha(repository),
+    alterarTipoContaUseCase: AlterarTipoConta(repository),
   )..carregar();
 });

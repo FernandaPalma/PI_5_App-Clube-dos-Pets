@@ -47,6 +47,10 @@
 			</array>
 		</dict>
 	</dict>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Permite escolher uma foto da galeria para o seu perfil.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Permite tirar uma foto para o seu perfil.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

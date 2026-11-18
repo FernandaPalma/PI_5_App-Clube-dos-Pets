@@ -76,9 +76,13 @@ class UsuarioModel {
     required this.email,
     required this.senhaHash,
     required this.salt,
+    this.fotoUrl,
+    this.tipo = TipoConta.tutor,
   });
 
   final String id, nome, email, senhaHash, salt;
+  final String? fotoUrl;
+  final TipoConta tipo;
 
   factory UsuarioModel.fromJson(Map<String, dynamic> j) => UsuarioModel(
         id: _str(j, 'id'),
@@ -86,6 +90,8 @@ class UsuarioModel {
         email: _str(j, 'email'),
         senhaHash: _str(j, 'senhaHash'),
         salt: _str(j, 'salt'),
+        fotoUrl: _str(j, 'foto_url').isEmpty ? null : _str(j, 'foto_url'),
+        tipo: _str(j, 'tipo') == 'empresa' ? TipoConta.empresa : TipoConta.tutor,
       );
 
   Map<String, dynamic> toJson() => {
@@ -94,9 +100,28 @@ class UsuarioModel {
         'email': email,
         'senhaHash': senhaHash,
         'salt': salt,
+        if (fotoUrl != null) 'foto_url': fotoUrl,
+        'tipo': tipo.name,
       };
 
-  Usuario toEntity() => Usuario(id: id, nome: nome, email: email);
+  UsuarioModel copyWith({
+    String? nome,
+    String? senhaHash,
+    String? salt,
+    TipoConta? tipo,
+  }) =>
+      UsuarioModel(
+        id: id,
+        nome: nome ?? this.nome,
+        email: email,
+        senhaHash: senhaHash ?? this.senhaHash,
+        salt: salt ?? this.salt,
+        fotoUrl: fotoUrl,
+        tipo: tipo ?? this.tipo,
+      );
+
+  Usuario toEntity() => Usuario(
+      id: id, nome: nome, email: email, fotoUrl: fotoUrl, tipo: tipo);
 }
 
 class AvaliacaoModel {

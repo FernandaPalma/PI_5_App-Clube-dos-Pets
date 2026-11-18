@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/pets_entities.dart';
 import '../../../../core/di/providers.dart';
 import '../controllers/pets_controller.dart';
+import 'perfil_page.dart';
 
 const petPrimary = Color(0xff1f6f78);
 const petDark = Color(0xff17323a);
@@ -149,25 +150,35 @@ class _AppShellState extends ConsumerState<AppShell> {
           accountName: Text(u?.nome ?? '',
               style: const TextStyle(fontWeight: FontWeight.w800)),
           accountEmail: Text(u?.email ?? ''),
-          currentAccountPicture: CircleAvatar(
-              backgroundColor: Colors.white,
-              child: Text(inicialDe(u?.nome ?? ''),
-                  style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w900,
-                      color: petPrimary)))),
+          currentAccountPicture: AvatarUsuario(usuario: u)),
       item(Icons.account_circle_outlined, 'Meu perfil',
           () => _conta(context, s)),
       item(Icons.workspace_premium_outlined, 'Planos', () => _planos(context)),
-      item(Icons.add_business_outlined, 'Sou empresa',
-          () => _novoLugar(context)),
+      if (u?.tipo == TipoConta.empresa)
+        item(Icons.add_business_outlined, 'Cadastrar meu local',
+            () => _novoLugar(context))
+      else
+        item(Icons.storefront_outlined, 'Divulgar meu local', _divulgarLocal),
       const Divider(),
       item(Icons.logout, 'Sair', () => ref.read(appProvider.notifier).sair()),
     ]));
   }
 
-  Widget _inicio(PetsState s, bool wide) =>
-      ListView(children: [_secaoDestaque(s, wide)]);
+  /// Puxar a tela para baixo recarrega locais, avaliações e favoritos.
+  Future<void> _atualizar() async {
+    try {
+      await ref.read(appProvider.notifier).atualizar();
+    } catch (e) {
+      if (mounted) _erro('Não foi possível atualizar: $e');
+    }
+  }
+
+  Widget _comAtualizacao(Widget lista) => RefreshIndicator(
+      color: petPrimary, onRefresh: _atualizar, child: lista);
+
+  Widget _inicio(PetsState s, bool wide) => _comAtualizacao(ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [_secaoDestaque(s, wide)]));
 
   Widget _secaoDestaque(PetsState s, bool wide) => Padding(
       padding: EdgeInsets.symmetric(horizontal: wide ? 70 : 22, vertical: 36),
@@ -213,7 +224,8 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   Widget _locais(
           PetsState s, List<Lugar> locais, List<String> cats, bool wide) =>
-      ListView(
+      _comAtualizacao(ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding:
               EdgeInsets.symmetric(horizontal: wide ? 60 : 17, vertical: 24),
           children: [
@@ -243,7 +255,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                   child: Center(child: Text('Nenhum local encontrado.')))
             else
               ...locais.map((l) => _cartaoCompacto(s, l)),
-          ]);
+          ]));
 
   Widget _cartaoCompacto(PetsState s, Lugar l) {
     final img = _imagemCategoria(l.categoria);
@@ -419,7 +431,8 @@ class _AppShellState extends ConsumerState<AppShell> {
           ])));
 
   Widget _lista(PetsState s, List<Lugar> locais, bool soFavoritos, bool wide) =>
-      ListView(
+      _comAtualizacao(ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding:
               EdgeInsets.symmetric(horizontal: wide ? 60 : 17, vertical: 24),
           children: [
@@ -433,7 +446,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                   child: Center(child: Text('Você ainda não salvou favoritos.')))
             else
               ...locais.map((l) => _cartaoCompacto(s, l)),
-          ]);
+          ]));
 
   Future<void> _rota(Lugar l) async {
     final text = Uri.encodeComponent(
@@ -467,7 +480,36 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   void _conta(BuildContext context, PetsState s) {
     Navigator.push(
-        context, MaterialPageRoute(builder: (_) => const ContaPage()));
+        context,
+        MaterialPageRoute(
+            builder: (_) =>
+                s.usuario == null ? const ContaPage() : const PerfilPage()));
+  }
+
+  /// Contas de tutor precisam virar conta de empresa para cadastrar locais.
+  Future<void> _divulgarLocal() async {
+    final confirmar = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+                title: const Text('Divulgar meu local'),
+                content: const Text(
+                    'Para cadastrar locais pet friendly, sua conta precisa ser '
+                    'de empresa/parceiro. Deseja mudar o tipo da sua conta?'),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Agora não')),
+                  FilledButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('Mudar para empresa')),
+                ]));
+    if (confirmar != true || !mounted) return;
+    try {
+      await ref.read(appProvider.notifier).alterarTipoConta(TipoConta.empresa);
+      if (mounted) _novoLugar(context);
+    } catch (e) {
+      if (mounted) _erro('$e');
+    }
   }
 
   void _novoLugar(BuildContext context) {
@@ -557,7 +599,21 @@ class DetalhesPage extends ConsumerStatefulWidget {
 
 class _DetalhesPageState extends ConsumerState<DetalhesPage> {
   final comentario = TextEditingController();
+  final _avaliarKey = GlobalKey();
+  final _focoComentario = FocusNode();
   int nota = 5;
+
+  /// Leva a tela até a área de avaliação e abre o campo de comentário.
+  void _irParaAvaliar() {
+    final alvo = _avaliarKey.currentContext;
+    if (alvo != null) {
+      Scrollable.ensureVisible(alvo,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOut,
+          alignment: 0.1);
+    }
+    _focoComentario.requestFocus();
+  }
 
   Future<void> _publicar(String lugarId) async {
     try {
@@ -612,6 +668,7 @@ class _DetalhesPageState extends ConsumerState<DetalhesPage> {
   @override
   void dispose() {
     comentario.dispose();
+    _focoComentario.dispose();
     super.dispose();
   }
 
@@ -622,7 +679,11 @@ class _DetalhesPageState extends ConsumerState<DetalhesPage> {
         avs = s.avaliacoes.where((a) => a.lugarId == l.id).toList();
     return Scaffold(
         appBar: AppBar(title: Text(l.nome)),
-        body: ListView(padding: const EdgeInsets.all(20), children: [
+        body: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
           GaleriaLugar(imagens: imagensDaCategoria(l.categoria)),
           const SizedBox(height: 20),
           Text(l.nome, style: Theme.of(context).textTheme.headlineMedium),
@@ -639,7 +700,19 @@ class _DetalhesPageState extends ConsumerState<DetalhesPage> {
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.phone),
                 title: Text(l.telefone)),
-          FilledButton.icon(
+          const SizedBox(height: 8),
+          if (s.usuario != null) ...[
+            FilledButton.icon(
+                onPressed: _irParaAvaliar,
+                icon: const Icon(Icons.star_rounded),
+                label: const Text('Avaliar este local')),
+            const SizedBox(height: 10),
+          ],
+          OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                  foregroundColor: petPrimary,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 19, vertical: 15)),
               onPressed: () async {
                 try {
                   await ref.read(appProvider.notifier).favorito(l.id);
@@ -683,7 +756,11 @@ class _DetalhesPageState extends ConsumerState<DetalhesPage> {
           else
             ...avs.map(_comentario),
           const Divider(height: 32),
-          if (s.usuario != null) ...[
+          if (s.usuario != null)
+            Column(
+                key: _avaliarKey,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
             const Text('Sua nota',
                 style: TextStyle(fontWeight: FontWeight.w800, color: petDark)),
             const SizedBox(height: 8),
@@ -706,19 +783,21 @@ class _DetalhesPageState extends ConsumerState<DetalhesPage> {
               Expanded(
                   child: TextField(
                       controller: comentario,
+                      focusNode: _focoComentario,
                       minLines: 1,
                       maxLines: 3,
                       decoration: const InputDecoration(
                           hintText: 'Adicione um comentário...',
                           border: InputBorder.none,
                           isDense: true))),
-              TextButton(
+              FilledButton(
                   onPressed: () => _publicar(l.id),
                   child: const Text('Publicar')),
             ]),
-          ] else
+          ])
+          else
             const Text('Entre na sua conta para comentar.'),
-        ]));
+        ])));
   }
 }
 
@@ -734,6 +813,7 @@ class _ContaPageState extends ConsumerState<ContaPage> {
       email = TextEditingController(),
       senha = TextEditingController();
   bool cadastro = false, processando = false;
+  TipoConta tipoConta = TipoConta.tutor;
   @override
   void dispose() {
     nome.dispose();
@@ -748,7 +828,7 @@ class _ContaPageState extends ConsumerState<ContaPage> {
       if (cadastro) {
         await ref
             .read(appProvider.notifier)
-            .cadastrar(nome.text, email.text, senha.text);
+            .cadastrar(nome.text, email.text, senha.text, tipo: tipoConta);
       } else {
         await ref.read(appProvider.notifier).login(email.text, senha.text);
       }
@@ -765,79 +845,92 @@ class _ContaPageState extends ConsumerState<ContaPage> {
 
   @override
   Widget build(BuildContext context) {
-    final u = ref.watch(appProvider).usuario;
+    // Com sessão ativa, esta rota mostra o perfil.
+    if (ref.watch(appProvider).usuario != null) return const PerfilPage();
     return Scaffold(
-        appBar: widget.entrada
-            ? null
-            : AppBar(title: Text(u == null ? 'Minha conta' : 'Perfil')),
-        body: Center(
-            child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 430),
-                child: ListView(
-                    padding: EdgeInsets.fromLTRB(24, widget.entrada ? 72 : 24, 24, 24),
-                    children: u != null
-                        ? [
-                            const Icon(Icons.account_circle, size: 70),
-                            const SizedBox(height: 16),
-                            Text(u.nome,
-                                textAlign: TextAlign.center,
-                                style:
-                                    Theme.of(context).textTheme.headlineSmall),
-                            Text(u.email, textAlign: TextAlign.center),
-                            const SizedBox(height: 24),
-                            FilledButton.tonal(
-                                onPressed: () async {
-                                  await ref.read(appProvider.notifier).sair();
-                                  if (context.mounted) Navigator.pop(context);
-                                },
-                                child: const Text('Sair'))
-                          ]
-                        : [
-                            const Icon(Icons.pets,
-                                size: 65, color: Color(0xff087c70)),
-                            const SizedBox(height: 10),
-                            Text(
-                                cadastro
-                                    ? 'Crie sua conta'
-                                    : 'Bem-vindo de volta!',
-                                textAlign: TextAlign.center,
-                                style:
-                                    Theme.of(context).textTheme.headlineSmall),
-                            const SizedBox(height: 20),
-                            if (cadastro) ...[
+        appBar:
+            widget.entrada ? null : AppBar(title: const Text('Minha conta')),
+        body: SafeArea(
+            child: Center(
+                child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 430),
+                        child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const Icon(Icons.pets,
+                                  size: 120, color: Color(0xff087c70)),
+                              const SizedBox(height: 16),
+                              Text(
+                                  cadastro
+                                      ? 'Crie sua conta'
+                                      : 'Bem-vindo de volta!',
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineSmall),
+                              const SizedBox(height: 24),
+                              if (cadastro) ...[
+                                SegmentedButton<TipoConta>(
+                                    segments: const [
+                                      ButtonSegment(
+                                          value: TipoConta.tutor,
+                                          icon: Icon(Icons.pets),
+                                          label: Text('Sou tutor')),
+                                      ButtonSegment(
+                                          value: TipoConta.empresa,
+                                          icon: Icon(Icons.storefront_outlined),
+                                          label: Text('Sou empresa')),
+                                    ],
+                                    selected: {tipoConta},
+                                    onSelectionChanged: (v) =>
+                                        setState(() => tipoConta = v.first)),
+                                const SizedBox(height: 8),
+                                Text(
+                                    tipoConta == TipoConta.empresa
+                                        ? 'Divulgue seu local pet friendly para tutores da região.'
+                                        : 'Encontre, avalie e salve lugares pet friendly.',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(color: petMuted)),
+                                const SizedBox(height: 16),
+                                TextField(
+                                    controller: nome,
+                                    decoration: InputDecoration(
+                                        labelText: tipoConta ==
+                                                TipoConta.empresa
+                                            ? 'Nome da empresa ou responsável'
+                                            : 'Nome completo')),
+                                const SizedBox(height: 12)
+                              ],
                               TextField(
-                                  controller: nome,
+                                  controller: email,
+                                  keyboardType: TextInputType.emailAddress,
                                   decoration: const InputDecoration(
-                                      labelText: 'Nome completo')),
-                              const SizedBox(height: 12)
-                            ],
-                            TextField(
-                                controller: email,
-                                keyboardType: TextInputType.emailAddress,
-                                decoration:
-                                    const InputDecoration(labelText: 'E-mail')),
-                            const SizedBox(height: 12),
-                            TextField(
-                                controller: senha,
-                                obscureText: true,
-                                decoration: const InputDecoration(
-                                    labelText:
-                                        'Senha (mínimo de 6 caracteres)')),
-                            const SizedBox(height: 18),
-                            FilledButton(
-                                onPressed: processando ? null : _enviar,
-                                child: Text(processando
-                                    ? 'Aguarde...'
-                                    : cadastro
-                                        ? 'Criar conta'
-                                        : 'Entrar')),
-                            TextButton(
-                                onPressed: () =>
-                                    setState(() => cadastro = !cadastro),
-                                child: Text(cadastro
-                                    ? 'Já tenho uma conta'
-                                    : 'Ainda não tenho conta'))
-                          ]))));
+                                      labelText: 'E-mail')),
+                              const SizedBox(height: 12),
+                              TextField(
+                                  controller: senha,
+                                  obscureText: true,
+                                  decoration: const InputDecoration(
+                                      labelText:
+                                          'Senha (mínimo de 6 caracteres)')),
+                              const SizedBox(height: 18),
+                              FilledButton(
+                                  onPressed: processando ? null : _enviar,
+                                  child: Text(processando
+                                      ? 'Aguarde...'
+                                      : cadastro
+                                          ? 'Criar conta'
+                                          : 'Entrar')),
+                              TextButton(
+                                  onPressed: () =>
+                                      setState(() => cadastro = !cadastro),
+                                  child: Text(cadastro
+                                      ? 'Já tenho uma conta'
+                                      : 'Ainda não tenho conta'))
+                            ]))))));
   }
 }
 
