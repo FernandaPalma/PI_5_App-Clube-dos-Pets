@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import '../entities/pets_entities.dart';
 import '../failures/pets_failures.dart';
 import '../repositories/pets_repository.dart';
@@ -32,14 +34,19 @@ class PetsSnapshot {
 class CadastrarUsuario {
   final PetsRepository repository;
   CadastrarUsuario(this.repository);
-  Future<Usuario> call(String nome, String email, String senha) {
+  Future<Usuario> call(
+    String nome,
+    String email,
+    String senha, {
+    TipoConta tipo = TipoConta.tutor,
+  }) {
     final nomeLimpo = nome.trim();
     final emailLimpo = email.trim().toLowerCase();
     if (nomeLimpo.length < 2 || !emailLimpo.contains('@') || senha.length < 6) {
       throw const ValidationFailure(
           'Informe nome, e-mail válido e senha de pelo menos 6 caracteres.');
     }
-    return repository.cadastrar(nomeLimpo, emailLimpo, senha);
+    return repository.cadastrar(nomeLimpo, emailLimpo, senha, tipo: tipo);
   }
 }
 
@@ -116,5 +123,75 @@ class AvaliarLugar {
       nota: nota,
       comentario: comentario.trim(),
     ));
+  }
+}
+
+class AtualizarNomePerfil {
+  final PetsRepository repository;
+  AtualizarNomePerfil(this.repository);
+  Future<Usuario> call(Usuario? usuario, String nome) {
+    if (usuario == null) throw const AuthFailure('Entre na sua conta.');
+    final limpo = nome.trim();
+    if (limpo.length < 2) {
+      throw const ValidationFailure('Informe um nome com pelo menos 2 letras.');
+    }
+    return repository.atualizarNome(limpo);
+  }
+}
+
+class AtualizarFotoPerfil {
+  final PetsRepository repository;
+  AtualizarFotoPerfil(this.repository);
+
+  static const limiteBytes = 2 * 1024 * 1024;
+  static const formatosAceitos = {'image/jpeg', 'image/png', 'image/webp'};
+
+  Future<Usuario> call(Usuario? usuario, Uint8List bytes, String mimeType) {
+    if (usuario == null) throw const AuthFailure('Entre na sua conta.');
+    if (!formatosAceitos.contains(mimeType)) {
+      throw const ValidationFailure('Use uma imagem JPEG, PNG ou WebP.');
+    }
+    if (bytes.isEmpty || bytes.length > limiteBytes) {
+      throw const ValidationFailure('A foto deve ter no máximo 2 MB.');
+    }
+    return repository.atualizarFoto(bytes, mimeType);
+  }
+}
+
+class RemoverFotoPerfil {
+  final PetsRepository repository;
+  RemoverFotoPerfil(this.repository);
+  Future<Usuario> call(Usuario? usuario) {
+    if (usuario == null) throw const AuthFailure('Entre na sua conta.');
+    return repository.removerFoto();
+  }
+}
+
+class AlterarSenha {
+  final PetsRepository repository;
+  AlterarSenha(this.repository);
+  Future<void> call(Usuario? usuario, String senhaAtual, String novaSenha) {
+    if (usuario == null) throw const AuthFailure('Entre na sua conta.');
+    if (senhaAtual.isEmpty) {
+      throw const ValidationFailure('Informe a senha atual.');
+    }
+    if (novaSenha.length < 6) {
+      throw const ValidationFailure(
+          'A nova senha deve ter pelo menos 6 caracteres.');
+    }
+    if (novaSenha == senhaAtual) {
+      throw const ValidationFailure(
+          'A nova senha deve ser diferente da atual.');
+    }
+    return repository.alterarSenha(senhaAtual, novaSenha);
+  }
+}
+
+class AlterarTipoConta {
+  final PetsRepository repository;
+  AlterarTipoConta(this.repository);
+  Future<Usuario> call(Usuario? usuario, TipoConta tipo) {
+    if (usuario == null) throw const AuthFailure('Entre na sua conta.');
+    return repository.alterarTipoConta(tipo);
   }
 }

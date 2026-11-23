@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import '../../domain/entities/pets_entities.dart';
 import '../../domain/failures/pets_failures.dart';
 import '../../domain/repositories/pets_repository.dart';
@@ -31,10 +33,19 @@ class PetsRepositoryImpl implements PetsRepository {
       _guard(() async => (await _auth.usuarioAtual())?.toEntity());
 
   @override
-  Future<Usuario> cadastrar(String nome, String email, String senha) =>
-      _guard(() async => (await _auth
-              .cadastrar(nome: nome, email: email, senha: senha))
+  Future<Usuario> cadastrar(
+    String nome,
+    String email,
+    String senha, {
+    TipoConta tipo = TipoConta.tutor,
+  }) =>
+      _guard(() async => (await _auth.cadastrar(
+              nome: nome, email: email, senha: senha, tipo: tipo))
           .toEntity());
+
+  @override
+  Future<Usuario> alterarTipoConta(TipoConta tipo) =>
+      _guard(() async => (await _auth.alterarTipoConta(tipo)).toEntity());
 
   @override
   Future<Usuario> login(String email, String senha) => _guard(
@@ -42,6 +53,23 @@ class PetsRepositoryImpl implements PetsRepository {
 
   @override
   Future<void> sair() => _guard(_auth.sair);
+
+  @override
+  Future<Usuario> atualizarNome(String nome) =>
+      _guard(() async => (await _auth.atualizarNome(nome)).toEntity());
+
+  @override
+  Future<Usuario> atualizarFoto(Uint8List bytes, String mimeType) => _guard(
+      () async => (await _auth.atualizarFoto(bytes: bytes, mimeType: mimeType))
+          .toEntity());
+
+  @override
+  Future<Usuario> removerFoto() =>
+      _guard(() async => (await _auth.removerFoto()).toEntity());
+
+  @override
+  Future<void> alterarSenha(String senhaAtual, String novaSenha) => _guard(() =>
+      _auth.alterarSenha(senhaAtual: senhaAtual, novaSenha: novaSenha));
 
   @override
   Future<List<Lugar>> lugares() => _guard(

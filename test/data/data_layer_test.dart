@@ -6,6 +6,7 @@ import 'package:clube_dos_pets_offline/features/pets/data/datasources/pets_datas
 import 'package:clube_dos_pets_offline/features/pets/data/models/pets_models.dart';
 import 'package:clube_dos_pets_offline/features/pets/data/repositories/pets_repository_impl.dart';
 import 'package:clube_dos_pets_offline/features/pets/data/security/password_hasher.dart';
+import 'package:clube_dos_pets_offline/features/pets/domain/entities/pets_entities.dart';
 import 'package:clube_dos_pets_offline/features/pets/domain/failures/pets_failures.dart';
 
 class _FailingPetsDataSource implements PetsDataSource {
@@ -63,6 +64,37 @@ void main() {
       await auth.cadastrar(nome: 'Ana', email: 'ana@pets.com', senha: 'segredo1');
       await expectLater(auth.login(email: 'ana@pets.com', senha: 'errada'), throwsA(isA<AuthFailure>()));
       await expectLater(auth.login(email: 'x@pets.com', senha: 'segredo1'), throwsA(isA<AuthFailure>()));
+    });
+
+    test('guarda o tipo de conta e permite mudar para empresa', () async {
+      await auth.cadastrar(nome: 'Ana', email: 'ana@pets.com', senha: 'segredo1');
+      expect((await auth.usuarioAtual())?.tipo, TipoConta.tutor);
+      await auth.alterarTipoConta(TipoConta.empresa);
+      expect((await auth.usuarioAtual())?.tipo, TipoConta.empresa);
+
+      await auth.sair();
+      final loja = await auth.cadastrar(
+          nome: 'Loja Pet', email: 'loja@pets.com', senha: 'segredo1', tipo: TipoConta.empresa);
+      expect(loja.tipo, TipoConta.empresa);
+    });
+
+    test('atualiza o nome da conta logada', () async {
+      await auth.cadastrar(nome: 'Ana', email: 'ana@pets.com', senha: 'segredo1');
+      final u = await auth.atualizarNome('Ana Paula');
+      expect(u.nome, 'Ana Paula');
+      expect((await auth.usuarioAtual())?.nome, 'Ana Paula');
+    });
+
+    test('troca a senha só com a senha atual correta', () async {
+      await auth.cadastrar(nome: 'Ana', email: 'ana@pets.com', senha: 'segredo1');
+      await expectLater(
+        auth.alterarSenha(senhaAtual: 'errada', novaSenha: 'segredo2'),
+        throwsA(isA<AuthFailure>()),
+      );
+      await auth.alterarSenha(senhaAtual: 'segredo1', novaSenha: 'segredo2');
+      await auth.sair();
+      await expectLater(auth.login(email: 'ana@pets.com', senha: 'segredo1'), throwsA(isA<AuthFailure>()));
+      expect((await auth.login(email: 'ana@pets.com', senha: 'segredo2')).email, 'ana@pets.com');
     });
   });
 
