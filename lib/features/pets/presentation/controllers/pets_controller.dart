@@ -1,14 +1,33 @@
 import 'dart:typed_data';
 
+import 'package:clube_dos_pets_offline/services/location_service.dart'; // Ajuste o import conforme o nome do seu pacote
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../domain/entities/pets_entities.dart';
-import '../../domain/usecases/pets_usecases.dart';
+import 'package:geolocator/geolocator.dart';
+
 class PetsState {
-  const PetsState({this.loading=true,this.usuario,this.lugares=const [],this.favoritos=const [],this.avaliacoes=const [],this.erro});
-  final bool loading;final Usuario? usuario;final List<Lugar> lugares;final List<String> favoritos;final List<Avaliacao> avaliacoes;final String? erro;
-  PetsState copyWith({bool? loading,Usuario? usuario,bool limparUsuario=false,List<Lugar>? lugares,List<String>? favoritos,List<Avaliacao>? avaliacoes,String? erro})=>PetsState(loading:loading??this.loading,usuario:limparUsuario?null:usuario??this.usuario,lugares:lugares??this.lugares,favoritos:favoritos??this.favoritos,avaliacoes:avaliacoes??this.avaliacoes,erro:erro);
-  double nota(String id){final n=avaliacoes.where((a)=>a.lugarId==id).toList();return n.isEmpty?0:n.map((a)=>a.nota).reduce((a,b)=>a+b)/n.length;}
+  final bool isLoading;
+  final Position? currentPosition;
+  final String? errorMessage;
+
+  const PetsState({
+    this.isLoading = false,
+    this.currentPosition,
+    this.errorMessage,
+  });
+
+  PetsState copyWith({
+    bool? isLoading,
+    Position? currentPosition,
+    String? errorMessage,
+  }) {
+    return PetsState(
+      isLoading: isLoading ?? this.isLoading,
+      currentPosition: currentPosition ?? this.currentPosition,
+      errorMessage: errorMessage,
+    );
+  }
 }
+
 class PetsController extends StateNotifier<PetsState> {
   PetsController({required this.carregarPets,required this.cadastrarUsuario,
     required this.entrar,required this.sairUseCase,required this.alternarFavorito,
@@ -58,5 +77,28 @@ class PetsController extends StateNotifier<PetsState> {
   Future<void> avaliar(String id,int nota,String comentario) async {
     await avaliarLugar(usuario:state.usuario,lugarId:id,nota:nota,comentario:comentario);
     await carregar();
+  PetsController() : super(const PetsState());
+
+  /// Obtém a localização atual utilizando o LocationService
+  Future<void> determinePosition() async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+
+    try {
+      // Delega a lógica de permissões e obtenção para o serviço dedicado
+      Position? position = await LocationService.obterLocalizacaoAtual();
+
+      state = state.copyWith(isLoading: false, currentPosition: position);
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.toString().replaceAll('Exception: ', ''),
+      );
+    }
   }
 }
+
+final petsControllerProvider = StateNotifierProvider<PetsController, PetsState>(
+  (ref) {
+    return PetsController();
+  },
+);
